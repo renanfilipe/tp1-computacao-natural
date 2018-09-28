@@ -11,7 +11,7 @@ terminals = []
 class NodeData(object):
 	def __init__(self, node_type, node_value):
 		self.node_type = node_type
-		self.node_value = node_value
+		self.node_value = str(node_value)
 
 
 def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_name: str = ""):
@@ -28,14 +28,14 @@ def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_
 	left_node_data = set_node_data()
 	tree.create_node(left_node_name, left_node_name, parent=parent_node_name, data=left_node_data)
 
-	if left_node_data["type"] == "function":
+	if left_node_data.node_type == "function":
 		generate_tree(tree, current_height+1, max_height, left_node_name)
 
 	# right child
 	right_node_data = set_node_data()
 	tree.create_node(right_node_name, right_node_name, parent=parent_node_name, data=right_node_data)
 
-	if right_node_data["type"] == "function":
+	if right_node_data.node_type == "function":
 		generate_tree(tree, current_height + 1, max_height, right_node_name)
 
 
@@ -52,8 +52,25 @@ def df_to_list(df: pd.DataFrame) -> list:
 	return data
 
 
-def resolve_tree(tree):
-	return
+def resolve_tree(tree: Tree, node_name: str):
+	node = tree.get_node(node_name)
+	children = node.fpointer
+	if not children:
+		return node.data.node_value
+
+	node_name = "" if node.tag == "Root" else node.tag
+
+	left_node_name = node_name + "L"
+	right_node_name = node_name + "R"
+
+	left_value = resolve_tree(tree, left_node_name)
+	if right_node_name in children:
+		right_value = resolve_tree(tree, right_node_name)
+		full_string = left_value + " " + node.data.node_value + " " + right_value
+		return str(eval(full_string))
+	else:
+		return left_value
+
 
 def start():
 	data = pd.read_csv('datasets/synth1/synth1-train.csv', header=None)
@@ -73,9 +90,14 @@ def start():
 
 	# heigth = random.randint(2, 7)
 	max_height = 7
+
 	tree = Tree()
-	tree.create_node("Root", "Root")
-	generate_tree(tree, 0, max_height)
+	root_node_data = set_node_data()
+	tree.create_node("Root", "Root", data=root_node_data)
+	if root_node_data.node_type == "function":
+		generate_tree(tree, 0, max_height)
+
 	tree.show()
 
+	resolve_tree(tree, "Root")
 	print(tree.children("L"))
