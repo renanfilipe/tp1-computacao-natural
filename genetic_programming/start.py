@@ -94,7 +94,7 @@ def estimate_fitness(tree_value: float, list_of_outputs: pd.Series) -> float:
 def generate_individual() -> dict:
 	tree = Tree()
 	tree.create_node("Root", "Root")
-	while(True):
+	while True:
 		root_node_data = set_node_data(0)
 		tree.get_node("Root").data = root_node_data
 		if root_node_data.node_type == "function":
