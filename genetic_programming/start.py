@@ -4,10 +4,16 @@ import random
 import math
 import copy
 
+NUMBER_OF_GENERATIONS = 30
 CHANCE_OF_BEING_TERMINAL = 70
-RANDOM_TERMINALS_SIZE = 20
+CHANCE_OF_CROSSOVER = 700
+CHANCE_OF_MUTATION = 5
+CHANCE_OF_TOURNAMENT = 50
+NUMBER_OF_CONSTANTS = 20
+NUMBER_OF_INDIVIDUALS = 20
 MAX_HEIGHT = 7
 ELITISM = True
+TOURNAMENT_SIZE = 2
 
 functions = []
 terminals = []
@@ -160,30 +166,62 @@ def operator_mutation(tree_obj: dict, y_set: pd.Series):
 	return child_obj
 
 
+def tournament(population: list):
+	participants = random.sample(population, k=TOURNAMENT_SIZE)
+	participants = sorted(participants, key=lambda k: k['fitness'])
+	return participants[0]
+
+
+def read_data(file_path: str) -> tuple:
+	data = pd.read_csv(file_path, header=None)
+	x_set = data.drop(data.columns[len(data.columns) - 1], axis=1).copy()
+	y_set = data[len(data.columns) - 1].copy()
+	return x_set, y_set
+
+
 def start():
-	data = pd.read_csv('datasets/synth1/synth1-train.csv', header=None)
-	x_set = data.drop(data.columns[len(data.columns)-1], axis=1).copy()
-	y_set = data[len(data.columns)-1].copy()
+	# read data from file
+	x_set, y_set = read_data('datasets/synth1/synth1-train.csv')
 
+	# define set of functions and terminals
 	global functions
-	functions = ['+', '-', '*', '/']
-
 	global terminals
+	functions = ['+', '-', '*', '/']
 	terminals = df_to_list(x_set)
-
 	seed = 10
 	random.seed(seed)
-	random_constants = [random.uniform(-1, 1) for _ in range(RANDOM_TERMINALS_SIZE)]
+	random_constants = [random.uniform(-1, 1) for _ in range(NUMBER_OF_CONSTANTS)]
 	terminals = [*terminals, *random_constants]
 
+	generations = []
+	# generate starting population
 	population = []
-	for x in range(10):
+	for x in range(NUMBER_OF_INDIVIDUALS):
 		population.append(generate_individual())
 
+	# evaluate the fitness of each individual
 	for individual in population:
 		individual["fitness"] = estimate_fitness(individual["value"], y_set)
 
-	population = sorted(population, key=lambda k: k['fitness'])
-	operator_crossover(population[0], population[1], y_set)
-	operator_mutation(population[0], y_set)
+	for i in range(NUMBER_OF_GENERATIONS):
+		# selection
+		new_population = []
+		# tournament selection
+		new_population.append(tournament(population))
+
+		# applying operators
+		for index, individual in enumerate(population):
+			if random.randrange(1000) < CHANCE_OF_CROSSOVER:
+				individual_a, individual_b = operator_crossover(individual, population[random.randrange(index, len(population))], y_set)
+				new_population.extend((individual_a, individual_b))
+			elif random.randrange(1000) < CHANCE_OF_MUTATION:
+				new_population.append(operator_mutation(individual, y_set))
+			else:
+				new_population.append(individual)
+
+		new_population = sorted(new_population, key=lambda k: k['fitness'])
+
+		generations.append(new_population)
+		population = copy.deepcopy(new_population)
+
 	print()
