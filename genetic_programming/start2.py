@@ -4,20 +4,19 @@ import random
 import math
 import copy
 
-CHANCE_OF_BEING_TERMINAL = 0.7
-CHANCE_OF_BEING_CONSTANT = 0.15
-CHANCE_OF_BEING_FUNCTION = 0.15
-
+NUMBER_OF_GENERATIONS = 100
+CHANCE_OF_BEING_TERMINAL = 70
 CHANCE_OF_CROSSOVER = 700
 CHANCE_OF_MUTATION = 5
 CHANCE_OF_TOURNAMENT = 50
-NUMBER_OF_CONSTANTS = 4
-
-NUMBER_OF_GENERATIONS = 100
+NUMBER_OF_CONSTANTS = 20
 NUMBER_OF_INDIVIDUALS = 200
 MAX_HEIGHT = 7
 ELITISM = True
 TOURNAMENT_SIZE = 2
+
+functions = []
+terminals = []
 
 
 class NodeData(object):
@@ -26,47 +25,7 @@ class NodeData(object):
 		self.node_value = str(node_value)
 
 
-def df_to_list(df: pd.DataFrame) -> list:
-	data = [df[y].tolist() for y in range(len(df.columns))]
-	data = [item for x in data for item in x]
-	return data
-
-
-def generate_individual(possible_nodes_values: dict) -> dict:
-	tree = Tree()
-	tree.create_node("Root", "Root")
-	root_node_data = set_node_data(0, possible_nodes_values)
-	tree.get_node("Root").data = root_node_data
-	generate_tree(tree, 0, MAX_HEIGHT, "", possible_nodes_values)
-
-	return {
-		"tree": tree,
-		"value": [],
-		"fitness": None
-	}
-
-
-def set_node_data(current_height: int, possible_nodes_values: dict) -> NodeData:
-	data = {"type": None, "value": None}
-	if current_height == 0:
-		data["type"] = "function"
-	elif current_height < MAX_HEIGHT - 1:
-		data["type"] = random.choices(
-			population=["terminal", "constant", "function"],
-			weights=[CHANCE_OF_BEING_TERMINAL, CHANCE_OF_BEING_CONSTANT, CHANCE_OF_BEING_FUNCTION],
-			k=1
-		)[0]
-	else:
-		data["type"] = random.choices(
-			population=["terminal", "constant"],
-			weights=[CHANCE_OF_BEING_TERMINAL, CHANCE_OF_BEING_CONSTANT],
-			k=1
-		)[0]
-	data["value"] = random.choice(possible_nodes_values[data["type"]])
-	return NodeData(data["type"], data["value"])
-
-
-def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_name: str, possible_nodes_values: dict):
+def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_name: str = ""):
 	if current_height == max_height:
 		return
 
@@ -77,52 +36,34 @@ def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_
 		parent_node_name = "Root"
 
 	# left child
-	left_node_data = set_node_data(current_height, possible_nodes_values)
+	left_node_data = set_node_data(current_height)
 	tree.create_node(left_node_name, left_node_name, parent=parent_node_name, data=left_node_data)
 
 	if left_node_data.node_type == "function":
-		generate_tree(tree, current_height+1, max_height, left_node_name, possible_nodes_values)
+		generate_tree(tree, current_height+1, max_height, left_node_name)
 
 	# right child
-	right_node_data = set_node_data(current_height, possible_nodes_values)
+	right_node_data = set_node_data(current_height)
 	tree.create_node(right_node_name, right_node_name, parent=parent_node_name, data=right_node_data)
 
 	if right_node_data.node_type == "function":
-		generate_tree(tree, current_height + 1, max_height, right_node_name, possible_nodes_values)
+		generate_tree(tree, current_height + 1, max_height, right_node_name)
+
+
+def set_node_data(current_height: int) -> NodeData:
+	data = {"type": None, "value": None}
+	data["type"] = "function" if random.randrange(100) > CHANCE_OF_BEING_TERMINAL and current_height < MAX_HEIGHT - 1 else "terminal"
+	data["value"] = random.choice(functions) if data["type"] == "function" else random.choice(terminals)
+	return NodeData(data["type"], data["value"])
+
+
+def df_to_list(df: pd.DataFrame) -> list:
+	data = [df[y].tolist() for y in range(len(df.columns))]
+	data = [item for x in data for item in x]
+	return data
 
 
 def resolve_tree(tree: Tree, node_name: str) -> str:
-	node = tree.get_node(node_name)
-	children = node.fpointer
-	if not children:
-		return node.data.node_value
-
-	node_name = "" if node.tag == "Root" else node.tag
-
-	left_node_name = node_name + "L"
-	right_node_name = node_name + "R"
-
-	left_value = resolve_tree(tree, left_node_name)
-	right_value = resolve_tree(tree, right_node_name)
-	try:
-		return str(eval(left_value + " " + node.data.node_value + " " + right_value))
-	except ZeroDivisionError:
-		print("zero division error on tree")
-		return str((eval(left_value + " " + node.data.node_value + " 1")))
-
-
-def estimate_fitness2(tree: Tree, x_set: pd.Series, y_set: pd.Series) -> float:
-	x_set = list(x_set)
-	for index in range(len(y_set)):
-		calculate_fitness(tree, "", x_set[index], y_set[index])
-
-
-def calculate_fitness(tree: Tree, x_set: pd.Series, y_set: pd.Series) -> float:
-	x_set = list(x_set)
-	for i in range(len(y_set)):
-		resolve_tree()_fitness(tree, "", x_set[i], y_set[i])
-
-def calculate_fitness2(tree: Tree, node_name: str, x_set: list, y_value: float):
 	node = tree.get_node(node_name)
 	children = node.fpointer
 	if not children:
@@ -154,6 +95,22 @@ def estimate_fitness(tree_value: float, list_of_outputs: pd.Series) -> float:
 	except ZeroDivisionError:
 		print("zero division error on fitness")
 		return 0
+
+
+def generate_individual() -> dict:
+	tree = Tree()
+	tree.create_node("Root", "Root")
+	while True:
+		root_node_data = set_node_data(0)
+		tree.get_node("Root").data = root_node_data
+		if root_node_data.node_type == "function":
+			generate_tree(tree, 0, MAX_HEIGHT)
+			break
+	return {
+		"tree": tree,
+		"value": float(resolve_tree(tree, "Root")),
+		"fitness": None
+	}
 
 
 def operator_crossover(tree_a_obj: dict, tree_b_obj: dict, y_set: pd.Series) -> tuple:
@@ -222,27 +179,43 @@ def read_data(file_path: str) -> tuple:
 	return x_set, y_set
 
 
+def remove_equals(population: list, old_population) -> list:
+	old_population = sorted(old_population, key=lambda k: k['fitness'])
+	new_population = []
+	for i in range(1, len(population)):
+		if population[i]["fitness"] != population[i-1]["fitness"]:
+			new_population.append(population[i])
+
+	index = len(old_population) - 1
+	while len(new_population) <= len(population):
+		new_population.append(old_population[index])
+		index -= 1
+	return new_population
+
+
 def start():
 	# read data from file
 	x_set, y_set = read_data('datasets/synth1/synth1-train.csv')
 
 	# define set of functions and terminals
-	random.seed(1)
-	possible_nodes_values = {
-		"constant": [random.uniform(-1, 1) for _ in range(NUMBER_OF_CONSTANTS)],
-		"terminal": ["X1", "X2"],
-		"function": ["+", "-", "*", "/"]
-	}
+	global functions
+	global terminals
+	functions = ['+', '-', '*', '/']
+	terminals = df_to_list(x_set)
+	seed = 10
+	random.seed(seed)
+	random_constants = [random.uniform(-1, 1) for _ in range(NUMBER_OF_CONSTANTS)]
+	terminals = [*terminals, *random_constants]
 
 	generations = []
 	# generate starting population
 	population = []
-	for _ in range(NUMBER_OF_INDIVIDUALS):
-		population.append(generate_individual(possible_nodes_values))
+	for x in range(NUMBER_OF_INDIVIDUALS):
+		population.append(generate_individual())
 
 	# evaluate the fitness of each individual
 	for individual in population:
-		individual["fitness"] = calculate_fitness(individual["value"], y_set)
+		individual["fitness"] = estimate_fitness(individual["value"], y_set)
 
 	for i in range(NUMBER_OF_GENERATIONS):
 		# selection
