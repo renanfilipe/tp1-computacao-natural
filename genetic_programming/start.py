@@ -14,7 +14,7 @@ CHANCE_MUTATION = 5
 CONSTANTS = 50
 
 GENERATIONS = 30
-INDIVIDUALS = 5
+INDIVIDUALS = 50
 MAX_HEIGHT = 7
 ELITISM = True
 TOURNAMENT_SIZE = 2
@@ -145,13 +145,13 @@ def operator_crossover(tree_a_obj: dict, tree_b_obj: dict, terminal_set: list, x
 	while crossover_node_tag == "Root":
 		crossover_node_tag = random.choice(possible_nodes)
 
-	child_ab_obj = dict()
+	child_ab_obj = dict({"tree": None, "value": [], "fitness": 0})
 	child_ab_obj["tree"] = copy.deepcopy(tree_a)
 	child_ab_obj["tree"].remove_node(crossover_node_tag)
 	child_ab_obj["tree"].paste(tree_a.get_node(crossover_node_tag).bpointer, tree_b.subtree(crossover_node_tag))
 	child_ab_obj = calculate_fitness(child_ab_obj, terminal_set, x_set, y_set)
 
-	child_ba_obj = dict()
+	child_ba_obj = dict({"tree": None, "value": [], "fitness": 0})
 	child_ba_obj["tree"] = copy.deepcopy(tree_b)
 	child_ba_obj["tree"].remove_node(crossover_node_tag)
 	child_ba_obj["tree"].paste(tree_b.get_node(crossover_node_tag).bpointer, tree_a.subtree(crossover_node_tag))
@@ -229,7 +229,7 @@ def start():
 
 		# applying operators
 		did_crossover = False
-		for i in range(0, INDIVIDUALS - 1):
+		for i in range(INDIVIDUALS):
 			if did_crossover:
 				did_crossover = False
 				continue
