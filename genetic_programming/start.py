@@ -3,7 +3,6 @@ import pandas as pd
 import random
 import math
 import copy
-import numpy as np
 
 CHANCE_TERMINAL = 0.7
 CHANCE_CONSTANT = 0.15
@@ -14,7 +13,7 @@ CHANCE_MUTATION = 5
 CONSTANTS = 50
 
 GENERATIONS = 30
-INDIVIDUALS = 50
+INDIVIDUALS = 200
 MAX_HEIGHT = 7
 ELITISM = True
 TOURNAMENT_SIZE = 2
@@ -53,15 +52,15 @@ def set_node_data(current_height: int, possible_nodes_values: dict) -> NodeData:
 	if current_height == 0:
 		data["type"] = "function"
 	elif current_height < MAX_HEIGHT - 1:
-		data["type"] = np.random.choice(
-			["terminal", "constant", "function"],
-			p=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION]
-		)
+		data["type"] = random.choices(
+			population=["terminal", "constant", "function"],
+			weights=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION]
+		)[0]
 	else:
-		data["type"] = np.random.choice(
-			["terminal", "constant"],
-			p=[CHANCE_TERMINAL / (CHANCE_TERMINAL + CHANCE_CONSTANT), CHANCE_CONSTANT / (CHANCE_TERMINAL + CHANCE_CONSTANT)]
-		)
+		data["type"] = random.choices(
+			population=["terminal", "constant"],
+			weights=[CHANCE_TERMINAL / (CHANCE_TERMINAL + CHANCE_CONSTANT), CHANCE_CONSTANT / (CHANCE_TERMINAL + CHANCE_CONSTANT)],
+		)[0]
 	data["value"] = random.choice(possible_nodes_values[data["type"]])
 	return NodeData(data["type"], data["value"])
 
@@ -92,6 +91,7 @@ def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_
 
 
 def calculate_fitness(tree_obj: dict, terminal_set: list, x_set: list, y_set: pd.Series):
+	tree_obj.update({"value": [], "fitness": 0})
 	for i in range(len(y_set)):
 		tree_obj["value"].append(float(resolve_tree(tree_obj["tree"], "Root", terminal_set, x_set[i])))
 	tree_obj["fitness"] = estimate_fitness(tree_obj["value"], y_set)
@@ -217,11 +217,10 @@ def start():
 
 	i = 0
 	for ind in population:
-		print("individual", i)
 		calculate_fitness(ind, possible_nodes_values["terminal"], x_set, y_set)
 		i += 1
 
-	for _ in range(GENERATIONS):
+	for j in range(GENERATIONS):
 		# selection
 		new_population = []
 		# tournament selection
@@ -244,8 +243,8 @@ def start():
 			else:
 				new_population.append(population[i])
 
-		new_population = sorted(new_population, key=lambda k: k['fitness'])
 		generations.append(new_population)
 		population = copy.deepcopy(new_population)
-		random.shuffle(population)
+		generations[j] = sorted(generations[j], key=lambda k: k['fitness'])
+		print(j, generations[j][0]["fitness"])
 	print()
