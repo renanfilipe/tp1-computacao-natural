@@ -4,13 +4,13 @@ import random
 import math
 import copy
 
-NUMBER_OF_GENERATIONS = 30
+NUMBER_OF_GENERATIONS = 100
 CHANCE_OF_BEING_TERMINAL = 70
 CHANCE_OF_CROSSOVER = 700
 CHANCE_OF_MUTATION = 5
 CHANCE_OF_TOURNAMENT = 50
 NUMBER_OF_CONSTANTS = 20
-NUMBER_OF_INDIVIDUALS = 20
+NUMBER_OF_INDIVIDUALS = 200
 MAX_HEIGHT = 7
 ELITISM = True
 TOURNAMENT_SIZE = 2
@@ -179,6 +179,20 @@ def read_data(file_path: str) -> tuple:
 	return x_set, y_set
 
 
+def remove_equals(population: list, old_population) -> list:
+	old_population = sorted(old_population, key=lambda k: k['fitness'])
+	new_population = []
+	for i in range(1, len(population)):
+		if population[i]["fitness"] != population[i-1]["fitness"]:
+			new_population.append(population[i])
+
+	index = len(old_population) - 1
+	while len(new_population) <= len(population):
+		new_population.append(old_population[index])
+		index -= 1
+	return new_population
+
+
 def start():
 	# read data from file
 	x_set, y_set = read_data('datasets/synth1/synth1-train.csv')
@@ -207,21 +221,26 @@ def start():
 		# selection
 		new_population = []
 		# tournament selection
-		new_population.append(tournament(population))
+		# new_population.append(tournament(population))
 
 		# applying operators
-		for index, individual in enumerate(population):
+		did_crossover = False
+		for i in range(0, NUMBER_OF_INDIVIDUALS):
+			if did_crossover:
+				did_crossover = False
+				continue
 			if random.randrange(1000) < CHANCE_OF_CROSSOVER:
-				individual_a, individual_b = operator_crossover(individual, population[random.randrange(index, len(population))], y_set)
+				individual_a, individual_b = operator_crossover(population[i], population[(i+1)%NUMBER_OF_INDIVIDUALS], y_set)
 				new_population.extend((individual_a, individual_b))
+				did_crossover = True
 			elif random.randrange(1000) < CHANCE_OF_MUTATION:
-				new_population.append(operator_mutation(individual, y_set))
+				new_population.append(operator_mutation(population[i], y_set))
 			else:
-				new_population.append(individual)
+				new_population.append(population[i])
 
 		new_population = sorted(new_population, key=lambda k: k['fitness'])
-
+		# new_population = remove_equals(new_population, population)
 		generations.append(new_population)
 		population = copy.deepcopy(new_population)
-
+		random.shuffle(population)
 	print()
