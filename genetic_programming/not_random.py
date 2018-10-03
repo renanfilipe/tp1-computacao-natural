@@ -1,14 +1,17 @@
-import random
-
+# import random
+import numpy
 
 class NotRandom():
-	def __init__(self, seed: int = 1000):
+	def __init__(self, seed: int = 10000):
 		self.seed = seed
+
+	def update_seed(self):
+		self.seed += 10000
 
 	def _call(self, name: str, *args, **kwargs):
 		self.seed += 1
-		func = getattr(random, name)
-		random.seed(self.seed)
+		func = getattr(numpy.random, name)
+		numpy.random.seed(self.seed)
 		result = func(*args, **kwargs)
 		# print(self.seed, name, result)
 		return result
@@ -17,7 +20,7 @@ class NotRandom():
 		return self._call("uniform", *args, **kwargs)
 
 	def randrange(self, *args, **kwargs):
-		return self._call("randrange", *args, **kwargs)
+		return self._call("randint", *args, **kwargs)
 
 	def choices(self, *args, **kwargs):
 		return self._call("choices", *args, **kwargs)

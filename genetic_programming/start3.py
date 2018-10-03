@@ -12,11 +12,11 @@ CHANCE_CROSSOVER = 700
 CHANCE_MUTATION = 5
 CONSTANTS = 50
 
-GENERATIONS = 100
-INDIVIDUALS = 50
+GENERATIONS = 5
+INDIVIDUALS = 10
 MAX_HEIGHT = 7
-ELITISM = False
-TOURNAMENT_SIZE = 20
+ELITISM = True
+TOURNAMENT_SIZE = 2
 
 random = Random()
 
@@ -53,15 +53,17 @@ def set_node_data(current_height: int, possible_nodes_values: dict) -> NodeData:
 	if current_height == 0:
 		data["type"] = "function"
 	elif current_height < MAX_HEIGHT - 1:
-		data["type"] = random.choice(
-			a=["terminal", "constant", "function"],
-			p=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION],
-		)
+		data["type"] = random.choices(
+			population=["terminal", "constant", "function"],
+			weights=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION],
+			k=1
+		)[0]
 	else:
-		data["type"] = random.choice(
-			a=["terminal", "constant"],
-			p=[CHANCE_TERMINAL / (CHANCE_TERMINAL + CHANCE_CONSTANT), CHANCE_CONSTANT / (CHANCE_TERMINAL + CHANCE_CONSTANT)],
-		)
+		data["type"] = random.choices(
+			population=["terminal", "constant"],
+			weights=[CHANCE_TERMINAL / (CHANCE_TERMINAL + CHANCE_CONSTANT), CHANCE_CONSTANT / (CHANCE_TERMINAL + CHANCE_CONSTANT)],
+			k=1
+		)[0]
 	data["value"] = random.choice(possible_nodes_values[data["type"]])
 	return NodeData(data["type"], data["value"])
 
@@ -142,8 +144,9 @@ def operator_crossover(tree_a_obj: dict, tree_b_obj: dict, terminal_set: list, x
 	tree_a_nodes = list(tree_a.nodes.keys())
 	tree_b_nodes = list(tree_b.nodes.keys())
 	possible_nodes = list(set(tree_a_nodes).intersection(tree_b_nodes))
-	possible_nodes.pop(possible_nodes.index("Root"))
 	crossover_node_tag = random.choice(possible_nodes)
+	while crossover_node_tag == "Root":
+		crossover_node_tag = random.choice(possible_nodes)
 
 	child_ab_obj = dict({"fitness": 0, "tree": None, "value": []})
 	child_ab_obj["tree"] = copy.deepcopy(tree_a)
@@ -170,6 +173,8 @@ def operator_mutation(tree_obj: dict, possible_nodes_values: dict, x_set: list, 
 	mutated_node_name = random.choice(tree_nodes)
 	node = tree.get_node(mutated_node_name)
 	new_value = random.choice(possible_nodes_values[node.data.node_type])
+	while new_value == node.data.node_value:
+		new_value = random.choice(possible_nodes_values[node.data.node_type])
 
 	child_obj = dict()
 	child_obj["tree"] = copy.deepcopy(tree)
@@ -208,6 +213,9 @@ def start():
 
 	# evaluate the fitness of each individual
 	print("calculating fitness")
+	# for i in range(len(population)):
+	# 	print("individual", i)
+	# 	population[i] = calculate_fitness(population[i], possible_nodes_values["terminal"], x_set, y_set)
 
 	i = 0
 	for ind in population:
@@ -218,11 +226,11 @@ def start():
 		# selection
 		new_population = []
 		# tournament selection
-		new_population.append(tournament(population))
+		# new_population.append(tournament(population))
 
 		# applying operators
 		did_crossover = False
-		for i in range(1, INDIVIDUALS):
+		for i in range(INDIVIDUALS):
 			if did_crossover:
 				did_crossover = False
 				continue
