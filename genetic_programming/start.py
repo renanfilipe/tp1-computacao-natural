@@ -13,11 +13,11 @@ CHANCE_CROSSOVER = 700
 CHANCE_MUTATION = 5
 CONSTANTS = 50
 
-GENERATIONS = 100
-INDIVIDUALS = 20
+GENERATIONS = 30
+INDIVIDUALS = 50
 MAX_HEIGHT = 7
-ELITISM = False
-TOURNAMENT = True
+ELITISM = True
+TOURNAMENT = False
 TOURNAMENT_SIZE = 10
 
 random = NotRandom()
@@ -144,7 +144,14 @@ def operator_crossover(tree_a_obj: dict, tree_b_obj: dict, terminal_set: list, x
 	tree_b = tree_b_obj["tree"]
 	tree_a_nodes = list(tree_a.nodes.keys())
 	tree_b_nodes = list(tree_b.nodes.keys())
-	possible_nodes = list(set(tree_a_nodes).intersection(tree_b_nodes))
+	possible_nodes = []
+	for item in tree_a_nodes:
+		if item in tree_b_nodes and item not in possible_nodes:
+			possible_nodes.append(item)
+	for item in tree_b_nodes:
+		if item in tree_a_nodes and item not in possible_nodes:
+			possible_nodes.append(item)
+	# print(possible_nodes)
 	possible_nodes.pop(possible_nodes.index("Root"))
 	crossover_node_tag = random.choice(possible_nodes)
 
@@ -216,12 +223,14 @@ def start():
 	generations = []
 	# generate starting population
 	population = []
-	for _ in range(INDIVIDUALS):
+	for k in range(INDIVIDUALS):
+		# print("individuo", k, "---------------")
 		population.append(generate_individual(possible_nodes_values))
 
 	# evaluate the fitness of each individual
 	i = 0
 	for ind in population:
+		# print("fitness", i, "---------------")
 		calculate_fitness(ind, possible_nodes_values["terminal"], x_set, y_set)
 		i += 1
 
@@ -230,9 +239,11 @@ def start():
 		new_population = []
 		# tournament selection
 		if TOURNAMENT:
+			# print("torneio", "---------------")
 			new_population.append(tournament(population))
 
 		# applying operators
+		# print("operadores", "---------------")
 		did_crossover = False
 		for i in range(0, INDIVIDUALS):
 			if did_crossover:
