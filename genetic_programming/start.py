@@ -1,6 +1,6 @@
 from treelib import Node, Tree
 import pandas as pd
-import random
+from .not_random import NotRandom as Random
 import math
 import copy
 
@@ -12,12 +12,13 @@ CHANCE_CROSSOVER = 700
 CHANCE_MUTATION = 5
 CONSTANTS = 50
 
-GENERATIONS = 30
-INDIVIDUALS = 200
+GENERATIONS = 5
+INDIVIDUALS = 10
 MAX_HEIGHT = 7
 ELITISM = True
 TOURNAMENT_SIZE = 2
 
+random = Random()
 
 class NodeData(object):
 	def __init__(self, node_type, node_value):
@@ -41,9 +42,9 @@ def generate_individual(possible_nodes_values: dict) -> dict:
 	generate_tree(tree, 0, MAX_HEIGHT, "", possible_nodes_values)
 
 	return {
+		"fitness": 0,
 		"tree": tree,
-		"value": [],
-		"fitness": 0
+		"value": []
 	}
 
 
@@ -54,12 +55,14 @@ def set_node_data(current_height: int, possible_nodes_values: dict) -> NodeData:
 	elif current_height < MAX_HEIGHT - 1:
 		data["type"] = random.choices(
 			population=["terminal", "constant", "function"],
-			weights=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION]
+			weights=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION],
+			k=1
 		)[0]
 	else:
 		data["type"] = random.choices(
 			population=["terminal", "constant"],
 			weights=[CHANCE_TERMINAL / (CHANCE_TERMINAL + CHANCE_CONSTANT), CHANCE_CONSTANT / (CHANCE_TERMINAL + CHANCE_CONSTANT)],
+			k=1
 		)[0]
 	data["value"] = random.choice(possible_nodes_values[data["type"]])
 	return NodeData(data["type"], data["value"])
@@ -91,7 +94,7 @@ def generate_tree(tree: Tree, current_height: int, max_height: int, parent_node_
 
 
 def calculate_fitness(tree_obj: dict, terminal_set: list, x_set: list, y_set: pd.Series):
-	tree_obj.update({"value": [], "fitness": 0})
+	tree_obj.update({"fitness": 0, "tree": tree_obj["tree"], "value": []})
 	for i in range(len(y_set)):
 		tree_obj["value"].append(float(resolve_tree(tree_obj["tree"], "Root", terminal_set, x_set[i])))
 	tree_obj["fitness"] = estimate_fitness(tree_obj["value"], y_set)
@@ -145,13 +148,13 @@ def operator_crossover(tree_a_obj: dict, tree_b_obj: dict, terminal_set: list, x
 	while crossover_node_tag == "Root":
 		crossover_node_tag = random.choice(possible_nodes)
 
-	child_ab_obj = dict({"tree": None, "value": [], "fitness": 0})
+	child_ab_obj = dict({"fitness": 0, "tree": None, "value": []})
 	child_ab_obj["tree"] = copy.deepcopy(tree_a)
 	child_ab_obj["tree"].remove_node(crossover_node_tag)
 	child_ab_obj["tree"].paste(tree_a.get_node(crossover_node_tag).bpointer, tree_b.subtree(crossover_node_tag))
 	child_ab_obj = calculate_fitness(child_ab_obj, terminal_set, x_set, y_set)
 
-	child_ba_obj = dict({"tree": None, "value": [], "fitness": 0})
+	child_ba_obj = dict({"fitness": 0, "tree": None, "value": []})
 	child_ba_obj["tree"] = copy.deepcopy(tree_b)
 	child_ba_obj["tree"].remove_node(crossover_node_tag)
 	child_ba_obj["tree"].paste(tree_b.get_node(crossover_node_tag).bpointer, tree_a.subtree(crossover_node_tag))
@@ -195,7 +198,6 @@ def start():
 	x_set, y_set = read_data('datasets/synth1/synth1-train.csv')
 
 	# define set of functions and terminals
-	random.seed(1)
 	possible_nodes_values = {
 		"constant": [random.uniform(-1, 1) for _ in range(CONSTANTS)],
 		"terminal": ["X1", "X2"],
@@ -246,5 +248,5 @@ def start():
 		generations.append(new_population)
 		population = copy.deepcopy(new_population)
 		generations[j] = sorted(generations[j], key=lambda k: k['fitness'])
-		print(j, generations[j][0]["fitness"])
+		print("--------------------------", j, generations[j][0]["fitness"])
 	print()
