@@ -1,7 +1,7 @@
-# import random
 import numpy
 
-class NotRandom():
+
+class NotRandom:
 	def __init__(self, seed: int = 10000):
 		self.seed = seed
 
@@ -21,9 +21,6 @@ class NotRandom():
 
 	def randrange(self, *args, **kwargs):
 		return self._call("randint", *args, **kwargs)
-
-	def choices(self, *args, **kwargs):
-		return self._call("choices", *args, **kwargs)
 
 	def choice(self, *args, **kwargs):
 		return self._call("choice", *args, **kwargs)

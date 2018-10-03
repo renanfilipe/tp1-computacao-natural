@@ -1,8 +1,9 @@
 from treelib import Node, Tree
 import pandas as pd
-from .not_random import NotRandom as Random
+from .not_random import NotRandom
 import math
 import copy
+import matplotlib.pyplot as plt
 
 CHANCE_TERMINAL = 0.7
 CHANCE_CONSTANT = 0.15
@@ -13,12 +14,14 @@ CHANCE_MUTATION = 5
 CONSTANTS = 50
 
 GENERATIONS = 100
-INDIVIDUALS = 50
+INDIVIDUALS = 20
 MAX_HEIGHT = 7
 ELITISM = False
-TOURNAMENT_SIZE = 20
+TOURNAMENT = True
+TOURNAMENT_SIZE = 10
 
-random = Random()
+random = NotRandom()
+
 
 class NodeData(object):
 	def __init__(self, node_type, node_value):
@@ -55,7 +58,7 @@ def set_node_data(current_height: int, possible_nodes_values: dict) -> NodeData:
 	elif current_height < MAX_HEIGHT - 1:
 		data["type"] = random.choice(
 			a=["terminal", "constant", "function"],
-			p=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION],
+			p=[CHANCE_TERMINAL, CHANCE_CONSTANT, CHANCE_FUNCTION]
 		)
 	else:
 		data["type"] = random.choice(
@@ -183,9 +186,20 @@ def operator_mutation(tree_obj: dict, possible_nodes_values: dict, x_set: list, 
 
 
 def tournament(population: list):
-	participants = random.sample(population, k=TOURNAMENT_SIZE)
+	participants = random.choice(
+			a=population,
+			size=TOURNAMENT_SIZE,
+			replace=False
+		)
 	participants = sorted(participants, key=lambda k: k['fitness'])
 	return participants[0]
+
+
+def find_best_fitness(population: list):
+	best_fitness = population[0]["fitness"]
+	for individual in population:
+		best_fitness = min(best_fitness, individual["fitness"])
+	return best_fitness
 
 
 def start():
@@ -201,14 +215,11 @@ def start():
 
 	generations = []
 	# generate starting population
-	print("starting population")
 	population = []
 	for _ in range(INDIVIDUALS):
 		population.append(generate_individual(possible_nodes_values))
 
 	# evaluate the fitness of each individual
-	print("calculating fitness")
-
 	i = 0
 	for ind in population:
 		calculate_fitness(ind, possible_nodes_values["terminal"], x_set, y_set)
@@ -218,11 +229,12 @@ def start():
 		# selection
 		new_population = []
 		# tournament selection
-		new_population.append(tournament(population))
+		if TOURNAMENT:
+			new_population.append(tournament(population))
 
 		# applying operators
 		did_crossover = False
-		for i in range(1, INDIVIDUALS):
+		for i in range(0, INDIVIDUALS):
 			if did_crossover:
 				did_crossover = False
 				continue
@@ -241,4 +253,19 @@ def start():
 		population = copy.deepcopy(new_population)
 		generations[j] = sorted(generations[j], key=lambda k: k['fitness'])
 		print("--------------------------", j, generations[j][0]["fitness"])
+	best_ind_fitness = [x[0]["fitness"] for x in generations]
+	plt.plot(best_ind_fitness)
+	plt.xlabel("Number of generations")
+	plt.ylabel("NRMSE")
+	plt.title("Best Individual")
+	plt.show()
+
+	average_fitness = []
+	for generation in generations:
+		average_fitness.append(sum([ind["fitness"] for ind in generation]) / len(generation))
+	plt.plot(average_fitness)
+	plt.xlabel("Number of generations")
+	plt.ylabel("NRMSE")
+	plt.title("Average Fitness of the Population")
+	plt.show()
 	print()
