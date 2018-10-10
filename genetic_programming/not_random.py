@@ -5,8 +5,8 @@ class NotRandom:
 	def __init__(self, seed: int = 10000):
 		self.seed = seed
 
-	def update_seed(self):
-		self.seed += 10000
+	def update_seed(self, iteration):
+		self.seed = iteration * 10000
 
 	def _call(self, name: str, *args, **kwargs):
 		self.seed += 1
