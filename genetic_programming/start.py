@@ -17,14 +17,15 @@ CHANCE_CROSSOVER = 700
 CHANCE_MUTATION = 5
 CONSTANTS = 50
 
-NUMBER_OF_TESTS = 5
-GENERATIONS = 10
-INDIVIDUALS = 50
+NUMBER_OF_TESTS = 2
+# GENERATIONS = [50, 100, 500]
+GENERATIONS = [1, 2, 3]
+INDIVIDUALS = 15
 MAX_HEIGHT = 7
 ELITISM = True
 TOURNAMENT = False
 TOURNAMENT_SIZE = 10
-PLOT = False
+PLOT = True
 
 
 class GlobalVar:
@@ -256,129 +257,146 @@ def start():
 	x_set_train, y_set_train = read_data(FILE_TRAIN)
 	x_set_test, y_set_test = read_data(FILE_TEST)
 
-	list_of_results = { "train": [], "test": [] }
+	list_of_results = dict()
 
-	for l in range(NUMBER_OF_TESTS):
-		print("iteration", l)
+	for number_of_generations in GENERATIONS:
+		print("number of generations", number_of_generations)
+		list_of_results[str(number_of_generations)] = {"train": [], "test": []}
 
-		random.update_seed(l)
+		for l in range(NUMBER_OF_TESTS):
+			print("iteration", l)
 
-		# define set of functions and terminals
-		possible_nodes_values = {
-			"constant": [random.uniform(-1, 1) for _ in range(CONSTANTS)],
-			"terminal": ["X1", "X2"],
-			"function": ["+", "-", "*", "/"]
-		}
+			random.update_seed(l)
 
-		results = {
-			"best_fitness": [],
-			"worst_fitness": [],
-			"average_fitness": [],
-			"clones": [],
-			"superior_children": [],
-			"superior_parents": []
-		}
+			# define set of functions and terminals
+			possible_nodes_values = {
+				"constant": [random.uniform(-1, 1) for _ in range(CONSTANTS)],
+				"terminal": ["X1", "X2"],
+				"function": ["+", "-", "*", "/"]
+			}
 
-		generation = []
-		# generate starting population
-		population = []
-		for k in range(INDIVIDUALS):
-			population.append(generate_individual(possible_nodes_values))
+			results = {
+				"best_fitness": [],
+				"worst_fitness": [],
+				"average_fitness": [],
+				"clones": [],
+				"superior_children": [],
+				"superior_parents": []
+			}
 
-		# evaluate the fitness of each individual
-		for ind in population:
-			calculate_fitness(ind, possible_nodes_values["terminal"], x_set_train, y_set_train)
+			generation = []
+			# generate starting population
+			population = []
+			for k in range(INDIVIDUALS):
+				population.append(generate_individual(possible_nodes_values))
 
-		population = sorted(population, key=lambda k: k['fitness'])
+			# evaluate the fitness of each individual
+			for ind in population:
+				calculate_fitness(ind, possible_nodes_values["terminal"], x_set_train, y_set_train)
 
-		results["best_fitness"].append(population[0]["fitness"])
-		results["worst_fitness"].append(population[-1]["fitness"])
-		results["average_fitness"].append(sum([ind["fitness"] for ind in population]) / len(population))
-		results["clones"].append(check_for_clones(population))
-		results["superior_children"].append(global_var.better_children)
-		results["superior_parents"].append(global_var.better_parents)
+			population = sorted(population, key=lambda k: k['fitness'])
 
-		global_var.reset()
-
-		for j in range(GENERATIONS):
-			# selection
-			new_population = []
-			# tournament selection
-			if TOURNAMENT:
-				new_population.append(tournament(population))
-
-			# applying operators
-			did_crossover = False
-			for i in range(0, INDIVIDUALS):
-				if did_crossover:
-					did_crossover = False
-					continue
-				if random.randrange(1000) < CHANCE_CROSSOVER:
-					ind_a, ind_b = operator_crossover(
-						population[i], population[(i+1) % INDIVIDUALS], possible_nodes_values["terminal"], x_set_train, y_set_train
-					)
-					new_population.extend((ind_a, ind_b))
-					did_crossover = True
-				elif random.randrange(1000) < CHANCE_MUTATION:
-					new_population.append(operator_mutation(population[i], possible_nodes_values, x_set_train, y_set_train))
-				else:
-					new_population.append(population[i])
-
-			generation.append(new_population)
-			population = copy.deepcopy(new_population)
-			generation[j] = sorted(generation[j], key=lambda k: k['fitness'])
-
-			results["best_fitness"].append(generation[j][0]["fitness"])
-			results["worst_fitness"].append(generation[j][-1]["fitness"])
-			results["average_fitness"].append(sum([ind["fitness"] for ind in generation[j]]) / len(generation[j]))
-			results["clones"].append(check_for_clones(generation[j]))
+			results["best_fitness"].append(population[0]["fitness"])
+			results["worst_fitness"].append(population[-1]["fitness"])
+			results["average_fitness"].append(sum([ind["fitness"] for ind in population]) / len(population))
+			results["clones"].append(check_for_clones(population))
 			results["superior_children"].append(global_var.better_children)
 			results["superior_parents"].append(global_var.better_parents)
 
 			global_var.reset()
 
-			# print(j, generation[j][0]["fitness"])
+			for j in range(number_of_generations):
+				# selection
+				new_population = []
+				# tournament selection
+				if TOURNAMENT:
+					new_population.append(tournament(population))
 
-			if PLOT:
-				best_ind_fitness = [x[0]["fitness"] for x in generation]
-				plt.plot(best_ind_fitness)
-				plt.xlabel("Number of generations")
-				plt.ylabel("NRMSE")
-				plt.title("Best Individual")
-				plt.show()
+				# applying operators
+				did_crossover = False
+				for i in range(0, INDIVIDUALS):
+					if did_crossover:
+						did_crossover = False
+						continue
+					if random.randrange(1000) < CHANCE_CROSSOVER:
+						ind_a, ind_b = operator_crossover(
+							population[i], population[(i+1) % INDIVIDUALS], possible_nodes_values["terminal"], x_set_train, y_set_train
+						)
+						new_population.extend((ind_a, ind_b))
+						did_crossover = True
+					elif random.randrange(1000) < CHANCE_MUTATION:
+						new_population.append(operator_mutation(population[i], possible_nodes_values, x_set_train, y_set_train))
+					else:
+						new_population.append(population[i])
 
-				average_fitness = []
-				for generation in generation:
-					average_fitness.append(sum([ind["fitness"] for ind in generation]) / len(generation))
-				plt.plot(average_fitness)
-				plt.xlabel("Number of generation")
-				plt.ylabel("NRMSE")
-				plt.title("Average Fitness of the Population")
-				plt.show()
+				generation.append(new_population)
+				population = copy.deepcopy(new_population)
+				generation[j] = sorted(generation[j], key=lambda k: k['fitness'])
 
-		list_of_results["train"].append(results)
+				results["best_fitness"].append(generation[j][0]["fitness"])
+				results["worst_fitness"].append(generation[j][-1]["fitness"])
+				results["average_fitness"].append(sum([ind["fitness"] for ind in generation[j]]) / len(generation[j]))
+				results["clones"].append(check_for_clones(generation[j]))
+				results["superior_children"].append(global_var.better_children)
+				results["superior_parents"].append(global_var.better_parents)
 
-		best_generation = copy.deepcopy(generation[-1])
+				global_var.reset()
 
-		# evaluate the fitness of each individual
-		for ind in best_generation:
-			calculate_fitness(ind, possible_nodes_values["terminal"], x_set_test, y_set_test)
+				print("generation", j, "train: best fitness", generation[j][0]["fitness"])
 
-		best_generation = sorted(best_generation, key=lambda k: k['fitness'])
+			list_of_results[str(number_of_generations)]["train"].append(results)
 
-		print(l, best_generation[0]["fitness"])
+			best_generation = copy.deepcopy(generation[-1])
 
-		results_test = {}
-		results_test["best_fitness"] = best_generation[0]["fitness"]
-		results_test["worst_fitness"] = best_generation[-1]["fitness"]
-		results_test["average_fitness"] = sum([ind["fitness"] for ind in best_generation]) / len(best_generation)
-		results_test["clones"] = check_for_clones(best_generation)
-		results_test["superior_children"] = global_var.better_children
-		results_test["superior_parents"] = global_var.better_parents
+			# evaluate the fitness of each individual
+			for ind in best_generation:
+				calculate_fitness(ind, possible_nodes_values["terminal"], x_set_test, y_set_test)
 
-		global_var.reset()
+			best_generation = sorted(best_generation, key=lambda k: k['fitness'])
 
-		list_of_results["test"].append(results_test)
+			print("test fitness:", best_generation[0]["fitness"])
+
+			results_test = dict()
+			results_test["best_fitness"] = best_generation[0]["fitness"]
+			results_test["worst_fitness"] = best_generation[-1]["fitness"]
+			results_test["average_fitness"] = sum([ind["fitness"] for ind in best_generation]) / len(best_generation)
+			results_test["clones"] = check_for_clones(best_generation)
+			results_test["superior_children"] = global_var.better_children
+			results_test["superior_parents"] = global_var.better_parents
+
+			global_var.reset()
+
+			list_of_results[str(number_of_generations)]["test"].append(results_test)
+
+	for key in list_of_results:
+		best_fitness = 0
+		worst_fitness = 0
+		average_fitness = 0
+		clones = 0
+		for test in list_of_results[key]["test"]:
+			best_fitness += test["best_fitness"]
+			worst_fitness += test["worst_fitness"]
+			average_fitness += test["average_fitness"]
+			clones += test["clones"]
+		list_of_results[key]["average_test"] = dict()
+		list_of_results[key]["average_test"]["best_fitness"] = best_fitness / len(list_of_results[key]["test"])
+		list_of_results[key]["average_test"]["worst_fitness"] = worst_fitness / len(list_of_results[key]["test"])
+		list_of_results[key]["average_test"]["average_fitness"] = average_fitness / len(list_of_results[key]["test"])
+		list_of_results[key]["average_test"]["clones"] = clones / len(list_of_results[key]["test"])
+
+	if PLOT:
+		plt.plot([list_of_results[key]["average_test"]["best_fitness"] for key in list_of_results], GENERATIONS)
+		plt.xlabel("Number of generations")
+		plt.ylabel("NRMSE")
+		plt.title("Average NRMSE of 30 tests")
+		plt.show()
 
 		print()
-	print()
+		# average_fitness = []
+		# for generation in generation:
+		# 	average_fitness.append(sum([ind["fitness"] for ind in generation]) / len(generation))
+		# plt.plot(average_fitness)
+		# plt.xlabel("Number of generation")
+		# plt.ylabel("NRMSE")
+		# plt.title("Average Fitness of the Population")
+		# plt.show()
