@@ -385,13 +385,46 @@ def start():
 		list_of_results[key]["average_test"]["clones"] = clones / len(list_of_results[key]["test"])
 
 	if PLOT:
-		plt.plot([list_of_results[key]["average_test"]["best_fitness"] for key in list_of_results], GENERATIONS)
-		plt.xlabel("Number of generations")
+		count = 1
+		plt.plot(GENERATIONS, [list_of_results[key]["average_test"]["best_fitness"] for key in list_of_results])
+		plt.xticks(GENERATIONS)
+		plt.xlabel("Numero de Gerações")
 		plt.ylabel("NRMSE")
-		plt.title("Average NRMSE of 30 tests")
-		plt.show()
+		plt.title("Melhor NRMSE em 30 testes")
+		# plt.show()
+		plt.savefig(str(count) + "_fig.png")
+		count += 1
+
+		plt.plot(GENERATIONS, [list_of_results[key]["average_test"]["worst_fitness"] for key in list_of_results])
+		plt.xticks(GENERATIONS)
+		plt.xlabel("Numero de Gerações")
+		plt.ylabel("NRMSE")
+		plt.title("Pior NRMSE em 30 testes")
+		# plt.show()
+		plt.savefig(str(count) + "_fig.png")
+		count += 1
+
+		plt.plot(GENERATIONS, [list_of_results[key]["average_test"]["average_fitness"] for key in list_of_results])
+		plt.xticks(GENERATIONS)
+		plt.xlabel("Numero de Gerações")
+		plt.ylabel("NRMSE")
+		plt.title("Média da NRMSE em 30 testes")
+		# plt.show()
+		plt.savefig(str(count) + "_fig.png")
+		count += 1
+
+		plt.plot(GENERATIONS, [list_of_results[key]["average_test"]["clones"] for key in list_of_results])
+		plt.xticks(GENERATIONS)
+		plt.xlabel("Numero de Gerações")
+		plt.ylabel("Clones")
+		plt.title("Média de clones na última geração em 30 testes")
+		# plt.show()
+		plt.savefig(str(count) + "_fig.png")
+		count += 1
 
 		print()
+
+
 		# average_fitness = []
 		# for generation in generation:
 		# 	average_fitness.append(sum([ind["fitness"] for ind in generation]) / len(generation))
